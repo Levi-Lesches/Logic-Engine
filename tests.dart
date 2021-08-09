@@ -171,14 +171,38 @@ const List<Test> tests = [
 	),
 	Test(
 		givens: [
-			Conditional(Symbol("p"), Symbol("r")),
-			Conditional(Symbol("q"), Symbol("s")),
 			Disjunction(Symbol("p"), Symbol("q")),
+			Conditional(Symbol("q"), Symbol("s")),
+			Conditional(Symbol("p"), Symbol("r")),
 		],
 		toProve: Disjunction(Symbol("s"), Symbol("r")),
+		result: """
+			1. p V q -- Given
+			2. q --> s -- Given
+			3. p --> r -- Given
+			4. ~s --> ~q -- Constrapositive (2)
+			5. ~p --> q -- Conditional Normalization (1)
+			6. ~q --> p -- Constrapositive (5)
+			7. ~s --> p -- Chain Rule (4, 6)
+			8. ~s --> r -- Chain Rule (7, 3)
+			9. s V r -- Conditional Normalization (8)
+		"""
+
+		// 1. p V q -- Given
+		// 2. q --> s -- Given
+		// 3. p --> r -- Given
+		// 4. ~q --> p -- Conditional Normalization (1)
+		// 5. ~s --> ~q -- Constrapositive (2)
+		// 6. ~s --> p -- Chain Rule (5, 4)
+		// 7. ~s --> r -- Chain Rule (6, 3)
+		// 8. s V r -- Conditional Normalization (7)
+
 	)
 ];
 
 void main() {
 	for (final Test test in tests) test.test();
+	// Premise prem = Disjunction(Symbol("p"), Symbol("t"));
+	// Premise toProve = Symbol("p");
+	// print(prem.getLaw(toProve));
 }

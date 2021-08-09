@@ -3,11 +3,14 @@ import "premises.dart";
 class Laws {
 	static const String given = "Given";
 
+	// Conditionals
 	static const String modusTollens = "Modus Tollens";
 	static const String detachment = "Detachment";
 	static const String contrapositive = "Constrapositive";
 	static const String conditionalNormalization = "Conditional Normalization";
+	static const String chainRule = "Chain Rule";
 
+	// Disjunctions and Conjunctions
 	static const String disjunctiveInference = "Disjunctive Inference";
 	static const String conjunctiveInference = "Conjunctive Inference";
 	static const String deMorgans = "De Morgan's Law";
@@ -33,7 +36,7 @@ class Law {
 		required this.name, 
 		required this.basis, 
 		required this.operands, 
-		required this.result
+		required this.result,
 	}) : _prems = [
 		if (basis != null) basis,
 		...operands,
