@@ -4,35 +4,46 @@ import "premises.dart";
 
 // ignore_for_file: avoid_print
 
+/* TODO
+* Proof by contradition (all possible contradictions)
+* Breadth-first search
+* Chain rule (all possible chains)
+* 
+* See commented out tests below
+*/
+
 class Test {
 	final String? name, result;
 	final List<Premise> givens;
 	final Premise toProve;
+	final bool verbose;
 
 	const Test({
 		required this.givens, 
 		required this.toProve, 
 		this.result,
 		this.name, 
+		this.verbose = false,
 	});
 
 	void test() {
-		if (name != null) print("Testing $name...");
-		final List<Law> proof = prove(givens, toProve);
+		final List<Law> proof = prove(
+			givens: givens, 
+			toProve: toProve, 
+			verbose: verbose
+		);
 		final String formatted = formatProof(proof);
 		final String test = formatted.replaceAll("\t", "");
 		// Don't use asserts, since they don't compile
 		if (result != null && test != result!.replaceAll("\t", "")) {
+			if (name != null) print("$name...");
 			print("Test failed.");
 			print("  Got: ");
 			print(formatted);
 			print("  but expected: ");
 			print(result);
 			throw AssertionError("Test failed");
-		} else {
-			print(formatted);
 		}
-		print("");
 	}
 }
 
@@ -54,6 +65,7 @@ const List<Test> tests = [
 		""",
 	),
 	Test(
+		name: "Counfounding givens",
 		givens: [
 		 	Conditional(Symbol("d", isPositive: false), Symbol("b", isPositive: false)),
 		 	Conditional(Symbol("x", isPositive: false), Symbol("c", isPositive: false)),
@@ -118,6 +130,7 @@ const List<Test> tests = [
 		"""
 	),
 	Test(
+		name: "Normalize givens",
 		givens: [
 			Disjunction(Symbol("p", isPositive: false), Symbol("q"), isPositive: false),
 			Conditional(Symbol("z", isPositive: false), Symbol("s", isPositive: false)),
@@ -140,6 +153,7 @@ const List<Test> tests = [
 		"""
 	),
 	Test(
+		name: "Derive same premise twice with conjunctive addition",
 		givens: [
 			Conditional(Symbol("u"), Symbol("r")),
 			Conditional(
@@ -171,14 +185,92 @@ const List<Test> tests = [
 	),
 	Test(
 		givens: [
-			Conditional(Symbol("p"), Symbol("r")),
-			Conditional(Symbol("q"), Symbol("s")),
-			Disjunction(Symbol("p"), Symbol("q")),
+			Disjunction(Symbol("p", isPositive: false), Symbol("q")),
+			Disjunction(Symbol("s"), Symbol("p")),
+			Symbol("q", isPositive: false),
 		],
-		toProve: Disjunction(Symbol("s"), Symbol("r")),
-	)
+		toProve: Symbol("s"),
+	),
+	Test(
+		name: "Nested conditionals",
+		givens: [
+			Disjunction(Symbol("r", isPositive: false), Symbol("p")),
+			Conditional(Symbol("p"), Conditional(Symbol("q"), Symbol("s"))),
+			Symbol("r"),
+			Symbol("q"),
+		],
+		toProve: Symbol("s"),
+	),
+	Test(
+		name: "Nested conjunctions",
+		givens: [
+			Conjunction(
+				Conditional(Symbol("p"), Symbol("q")), 
+				Conditional(Symbol("r"), Symbol("s"))
+			),
+			Conjunction(
+				Conditional(Symbol("q"), Symbol("t")), 
+				Conditional(Symbol("s"), Symbol("u"))
+			),
+			Conjunction(Symbol("t"), Symbol("u"), isPositive: false),
+			Conditional(Symbol("x"), Symbol("r")),
+			Symbol("p"),
+		],
+		toProve: Symbol("x", isPositive: false),
+	),
+	// Proof by contradition not supported yet
+	// 
+	// Test(
+	// 	name: "Proof by contradiction (t)",
+	// 	givens: [
+	// 		Conjunction(
+	// 			Conditional(Symbol("p"), Symbol("q")), 
+	// 			Conditional(Symbol("r"), Symbol("s"))
+	// 		),
+	// 		Conjunction(
+	// 			Conditional(Symbol("q"), Symbol("t")), 
+	// 			Conditional(Symbol("s"), Symbol("u"))
+	// 		),
+	// 		Conjunction(Symbol("t"), Symbol("u"), isPositive: false),
+	// 		Conditional(Symbol("p"), Symbol("r")),
+	// 	],
+	// 	toProve: Symbol("p", isPositive: false),
+	// ),
+	// 
+	// These two will be handled when this is converted to Breadth-First or A*
+	// 
+	// Test(
+	// 	name: "Shortest proof test",
+	// 	givens: [
+	// 		// The longer way to prove e
+	// 		Conditional(Symbol("a"), Symbol("b")),
+	// 		Conditional(Symbol("b"), Symbol("c")),
+	// 		Symbol("a"),
+	// 
+	// 		// The right way to prove e
+	// 		Conjunction(Symbol("c"), Symbol("p")),
+	// 	],
+	// 	toProve: Symbol("c"),
+	// 	result: """
+	// 		1. a --> b -- Given
+	// 		2. b --> c -- Given
+	// 		3. a -- Given
+	// 		4. e ^ p -- Given
+	// 		5. e -- Conjunctive Inference (5)
+	// 	"""
+	// ),
+	// Test(
+	// 	name: "Complex chain rule + conditional normalization",
+	// 	givens: [
+	// 		Conditional(Symbol("p"), Symbol("r")),
+	// 		Conditional(Symbol("q"), Symbol("s")),
+	// 		Disjunction(Symbol("p"), Symbol("q")),
+	// 	],
+	// 	toProve: Disjunction(Symbol("s"), Symbol("r")),
+	// )
 ];
 
 void main() {
 	for (final Test test in tests) test.test();
+	print("All tests passed!");
 }
