@@ -4,15 +4,6 @@ abstract class Premise {
 	final bool isPositive;
 	const Premise({required this.isPositive});
 
-	// factory Premise.parse(String input) {
-	// 	// ~(~c ^ d) --> (a V b)
-
-	// 	bool isPositive = true;
-	// 	for (final String letter in input.split("")) {
-	// 		if (letter == "~")
-	// 	}
-	// }
-
 	String format(Premise left, Premise right, String operator) {
 		String formatInternal(Premise prem) => prem is Symbol || !prem.isPositive
 			? prem.toString() : "($prem)";
@@ -23,10 +14,11 @@ abstract class Premise {
 		else return "~($_left $operator $_right)";
 	}
 
+	bool get canBeNormalized;
+	Law? normalize();
 	Premise negate();
 	bool contains(Premise other);
 	Law? getLaw(Premise other);
-	Law? normalize();
 }
 
 class Symbol extends Premise {
@@ -53,6 +45,9 @@ class Symbol extends Premise {
 
 	@override
 	Law? getLaw(Premise other) => null;  // use == instead
+
+	@override
+	bool get canBeNormalized => false;
 
 	@override
 	Law? normalize() => null;
@@ -106,6 +101,9 @@ class Conditional extends Premise {
 	}
 
 	@override
+	bool get canBeNormalized => !isPositive;
+
+	@override
 	Law? normalize() {
 		if (!isPositive) return Law(
 			basis: this,
@@ -118,10 +116,10 @@ class Conditional extends Premise {
 
 abstract class BinaryPremise extends Premise {
 	final Premise left, right; 
-	String get operator;
+	final String operator;
 	const BinaryPremise(
 		this.left, this.right, 
-		{bool isPositive = true}
+		{required this.operator, bool isPositive = true}
 	) : 
 		super(isPositive: isPositive);
 
@@ -159,19 +157,17 @@ abstract class BinaryPremise extends Premise {
 	);
 
 	@override
-	Law? normalize() {
-		if (!isPositive) return deMorgans();
-	}
+	bool get canBeNormalized => !isPositive;
+
+	@override
+	Law? normalize() => isPositive ? null : deMorgans();
 }
 
 class Disjunction extends BinaryPremise {
 	const Disjunction(
 		Premise left, Premise right, 
 		{bool isPositive = true}
-	) : super(left, right, isPositive: isPositive);
-
-	@override
-	String get operator => "V";
+	) : super(left, right, isPositive: isPositive, operator: "V");
 
 	@override
 	Law? getLaw(Premise other) {
@@ -194,10 +190,7 @@ class Conjunction extends BinaryPremise {
 	const Conjunction(
 		Premise left, Premise right,
 		{bool isPositive = true}
-	) : super(left, right, isPositive: isPositive);
-
-	@override
-	String get operator => "^";
+	) : super(left, right, isPositive: isPositive, operator: "^");
 
 	@override
 	Law? getLaw(Premise other) {

@@ -23,7 +23,7 @@ class Laws {
 // Example: 
 // - name: detachment
 // - basis: p --> q
-// - operands: p
+// - operands: [p]
 // - result: q
 class Law {
 	final String name;
@@ -42,14 +42,17 @@ class Law {
 		...operands,
 	];
 
+	const Law.given(this.result) : 
+		name = Laws.given,
+		basis = null, 
+		operands = const [],
+		_prems = const [];
+
 	@override
-	String toString() => "$result: Applied $name to $basis with $operands";
+	String toString() => "$result: Apply $name to [$basis] with $operands";
 
 	@override
 	bool operator ==(Object other) => other is Law 
-		&& other.basis == basis
-		// && other.operands == operands
-		&& other.name == name
 		&& other.result == result;
 
 	@override
@@ -77,3 +80,56 @@ String formatProof(List<Law> proof) {
 	return result.toString();
 }
 
+List<Law>? constructPremise(Premise target, List<Law> premises) {
+	if (target is Conditional && target.isPositive) return [
+		Law(
+			basis: null,
+			operands: [
+				Conditional(target.conclusion.negate(), target.hypothesis.negate())
+			],
+			result: target,
+			name: Laws.contrapositive
+		),
+		Law(
+			basis: null,
+			operands: [Disjunction(target.hypothesis.negate(), target.conclusion)],
+			result: target,
+			name: Laws.conditionalNormalization,
+		)
+	]; else if (target is BinaryPremise) {
+		final Law deMorgans = Law(
+			basis: null,
+			operands: [target.deMorgans().result],  // transitive property
+			result: target,
+			name: Laws.deMorgans,
+		);
+
+		if (target is Disjunction) return [
+			deMorgans,
+			for (var terms in [
+				[target.left, target.right],  [target.right, target.left]
+			]) ...[
+				if (target.isPositive) Law(
+					basis: null,
+					operands: [terms [0]],
+					result: target,
+					name: Laws.disjunctiveAddition,
+				),
+				if (target.isPositive) Law(
+					basis: null,
+					operands: [Conditional(terms [0].negate(), terms [1])],
+					result: target,
+					name: Laws.conditionalNormalization,
+				),
+			],
+		]; else if (target is Conjunction) return [
+			deMorgans,
+			if (target.isPositive) Law(
+				basis: null,
+				operands: [target.left, target.right],
+				result: target,
+				name: Laws.conjunctiveAddition,
+			),
+		];
+	} 
+}
